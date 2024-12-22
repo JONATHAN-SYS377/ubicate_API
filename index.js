@@ -11,9 +11,9 @@ const cors = require('cors');
 const swaggerDefinition = {
     openapi: '3.0.0',
     info: {
-        title: 'API RestauranTech',
-        version: '1.0.0',
-        description: 'Documentación de la API RestauranTech',
+        title: 'API Ubicate',
+        version: '1.0.1',
+        description: 'Documentación de la API Ubicate',
     },
     servers: [
         {
@@ -43,48 +43,9 @@ app.use('/api-docs', cors(), swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
 
-// ------------------------------- DATOS DE LOS RESTAURANTES ---------------------------------//
 
-// /**
-//  * @swagger
-//  * /api/contarRestaurantes:
-//  *   post:
-//  *     tags:
-//  *       - Datos del Restaurante
-//  *     summary: Obtiene el número total de restaurantes registrados
-//  *     description: Este endpoint devuelve el número total de registros en la tabla `tbRestaurantes`.
-//  *     responses:
-//  *       200:
-//  *         description: Número de restaurantes obtenido correctamente
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 count:
-//  *                   type: integer
-//  *       500:
-//  *         description: Error interno del servidor
-//  */
-// app.post('/api/contarRestaurantes', (req, res) => {
-//     const query = 'SELECT COUNT(*) AS count FROM clientes';
 
-//     connection.query(query, (err, results) => {
-//         if (err) {
-//             console.error('Error al obtener el número de restaurantes:', err);
-//             return res.status(500).json({
-//                 success: false,
-//                 message: 'Error interno del servidor',
-//                 errorDetails: err.message
-//             });
-//         }
 
-//         res.status(200).json({
-//             success: true,
-//             count: results[0].count
-//         });
-//     });
-// });
 
 /**
  * @swagger
