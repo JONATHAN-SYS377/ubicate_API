@@ -4,7 +4,7 @@ const swaggerJSDoc = require('swagger-jsdoc');
 const app = express();
 const port = process.env.PORT || 3009;
 
-const connection = require('./Database/db');
+const pool = require('./Database/db');
 const cors = require('cors');
 
 // Configuración de Swagger JSDoc
@@ -101,33 +101,40 @@ app.use('/api-docs', cors(), swaggerUi.serve, swaggerUi.setup(swaggerSpec));
  *       500:
  *         description: Error interno del servidor
  */
-app.post('/api/registrarCliente', (req, res) => {
-    const {suscriptor, nombreCompleto, telefono1, telefono2, telefono3,plan, colilla, tap, nap,mac,sn,ip,direccion, ubicacion} = req.body;
+app.post('/api/registrarCliente', async (req, res) => {
+    const { 
+        suscriptor, nombreCompleto, telefono1, telefono2, telefono3,
+        plan, colilla, tap, nap, mac, sn, ip, direccion, ubicacion 
+    } = req.body;
 
     const query = `
-        INSERT INTO clientes (suscriptor,nombreCompleto, telefono1, telefono2, telefono3, plan, colilla, tap, nap,mac,sn,ip, direccion, ubicacion)
+        INSERT INTO clientes (suscriptor, nombreCompleto, telefono1, telefono2, telefono3, plan, colilla, tap, nap, mac, sn, ip, direccion, ubicacion)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    const values = [suscriptor, nombreCompleto, telefono1, telefono2, telefono3,plan, colilla, tap, nap,mac,sn,ip,direccion, ubicacion];
+    const values = [
+        suscriptor, nombreCompleto, telefono1, telefono2, telefono3,
+        plan, colilla, tap, nap, mac, sn, ip, direccion, ubicacion
+    ];
 
-    connection.query(query, values, (err, results) => {
-        if (err) {
-            console.error('Error al registrar el cliente:', err);
-            return res.status(500).json({
-                estado: false,
-                message: 'Error interno del servidor',
-                errorDetails: err.message
-            });
-        }
+    try {
+        const [results] = await pool.query(query, values);
 
         res.status(200).json({
             estado: true,
-            message: 'cliente registrado correctamente',
+            message: 'Cliente registrado correctamente',
             restaurantId: results.insertId
         });
-    });
+    } catch (err) {
+        console.error('Error al registrar el cliente:', err);
+        res.status(500).json({
+            estado: false,
+            message: 'Error interno del servidor',
+            errorDetails: err.message
+        });
+    }
 });
+
 
 /**
  * @swagger
@@ -135,7 +142,7 @@ app.post('/api/registrarCliente', (req, res) => {
  *   post:
  *     tags:
  *       - Datos del Cliente
- *     summary: Edita los datos de un cliente existente`
+ *     summary: Edita los datos de un cliente existente
  *     description: Este endpoint permite editar los datos de un cliente por su numero de `suscriptor`.
  *     requestBody:
  *       required: true
@@ -184,62 +191,69 @@ app.post('/api/registrarCliente', (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-app.post('/api/editarCliente', (req, res) => {
-    const { suscriptor, nuevoSuscriptor, nombreCompleto, telefono1, telefono2, telefono3,plan, colilla, tap, nap,mac,sn,ip,direccion, ubicacion } = req.body;
-
+app.post('/api/editarCliente', async (req, res) => {
+    const { 
+      suscriptor, nuevoSuscriptor, nombreCompleto, telefono1, telefono2, telefono3,
+      plan, colilla, tap, nap, mac, sn, ip, direccion, ubicacion 
+    } = req.body;
+  
     // Validar que ambos `suscriptor` y `nuevoSuscriptor` estén presentes
     if (!suscriptor || !nuevoSuscriptor) {
-        return res.status(400).json({
-            success: false,
-            message: 'Debe proporcionar el número de suscriptor actual y el nuevo número de suscriptor.'
-        });
+      return res.status(400).json({
+        success: false,
+        message: 'Debe proporcionar el número de suscriptor actual y el nuevo número de suscriptor.'
+      });
     }
-
+  
     const query = `
-        UPDATE clientes
-        SET 
-            suscriptor = ?, 
-            nombreCompleto = ?, 
-            telefono1 = ?, 
-            telefono2 = ?, 
-            telefono3 = ?,
-            plan = ?,
-            colilla = ?, 
-            tap = ?, 
-            nap = ?, 
-            mac = ?,
-            sn = ?,
-            ip = ?,
-            direccion = ?, 
-            ubicacion = ?
-        WHERE suscriptor = ? 
+      UPDATE clientes
+      SET 
+        suscriptor = ?, 
+        nombreCompleto = ?, 
+        telefono1 = ?, 
+        telefono2 = ?, 
+        telefono3 = ?,
+        plan = ?,
+        colilla = ?, 
+        tap = ?, 
+        nap = ?, 
+        mac = ?,
+        sn = ?,
+        ip = ?,
+        direccion = ?, 
+        ubicacion = ?
+      WHERE suscriptor = ? 
     `;
-
-    const values = [nuevoSuscriptor, nombreCompleto, telefono1, telefono2, telefono3,plan, colilla, tap, nap,mac, sn, ip, direccion, ubicacion, suscriptor];
-
-    connection.query(query, values, (err, results) => {
-        if (err) {
-            console.error('Error al editar el cliente:', err);
-            return res.status(500).json({
-                estado: false,
-                message: 'Error interno del servidor',
-                errorDetails: err.message
-            });
-        }
-
-        if (results.affectedRows > 0) {
-            res.status(200).json({
-                estado: true,
-                message: 'Cliente actualizado correctamente'
-            });
-        } else {
-            res.status(400).json({
-                estado: false,
-                message: 'No se pudo actualizar el Cliente, verifique los datos.'
-            });
-        }
-    });
-});
+  
+    const values = [
+      nuevoSuscriptor, nombreCompleto, telefono1, telefono2, telefono3,
+      plan, colilla, tap, nap, mac, sn, ip, direccion, ubicacion, suscriptor
+    ];
+  
+    try {
+      const [results] = await pool.query(query, values);
+  
+      if (results.affectedRows > 0) {
+        res.status(200).json({
+          estado: true,
+          message: 'Cliente actualizado correctamente'
+        });
+      } else {
+        res.status(400).json({
+          estado: false,
+          message: 'No se pudo actualizar el Cliente, verifique los datos.'
+        });
+      }
+    } catch (err) {
+      console.error('Error al editar el cliente:', err);
+      res.status(500).json({
+        estado: false,
+        message: 'Error interno del servidor',
+        errorDetails: err.message
+      });
+    }
+  });
+  
 
 
 /**
@@ -303,42 +317,132 @@ app.post('/api/editarCliente', (req, res) => {
  *       500:
  *         description: Error interno del servidor.
  */
-app.post('/api/obtenerCliente', (req, res) => {
+app.post('/api/obtenerCliente', async (req, res) => {
     const { suscriptor } = req.body;
-
+  
     console.log("Valor del suscriptor recibido:", suscriptor);
-
+  
     if (!suscriptor) {
-        return res.status(400).json({
-            success: false,
-            message: 'Debe proporcionar un número de suscriptor válido.'
-        });
+      return res.status(400).json({
+        success: false,
+        message: 'Debe proporcionar un número de suscriptor válido.',
+      });
     }
-
+  
     const query = 'SELECT * FROM clientes WHERE suscriptor = ?';
+    const values = [suscriptor];
+  
+    try {
+      const [results] = await pool.query(query, values);
+  
+      if (results.length > 0) {
+        res.status(200).json({
+          estado: true,
+          data: results[0],
+        });
+      } else {
+        res.status(404).json({
+          estado: false,
+          data: [],
+          message: 'No se encontró un cliente con el suscriptor proporcionado.',
+        });
+      }
+    } catch (err) {
+      console.error('Error al obtener los datos del cliente:', err);
+      res.status(500).json({
+        estado: false,
+        message: 'Error interno del servidor',
+        errorDetails: err.message,
+      });
+    }
+  });
+  
 
-    connection.query(query, [suscriptor], (err, results) => {
-        if (err) {
-            console.error('Error al obtener los datos del cliente:', err);
-            return res.status(500).json({
-                estado: false,
-                message: 'Error interno del servidor',
-                errorDetails: err.message
-            });
-        }
 
+/**
+ * @swagger
+ * /api/TodosLosClientes:
+ *   post:
+ *     tags:
+ *       - Datos del Cliente
+ *     summary: Obtiene todos los datos de los clientes registrados en el sistema.
+ *     description: Este endpoint permite obtener la lista completa de clientes registrados en el sistema.
+ *     responses:
+ *       200:
+ *         description: Lista de clientes obtenida correctamente.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 estado:
+ *                   type: boolean
+ *                   description: Indica si la operación fue exitosa.
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       suscriptor:
+ *                         type: string
+ *                         description: Número de suscriptor del cliente.
+ *                       nombreCompleto:
+ *                         type: string
+ *                         description: Nombre completo del cliente.
+ *                       telefono1:
+ *                         type: string
+ *                         description: Teléfono principal del cliente.
+ *                       telefono2:
+ *                         type: string
+ *                         description: Segundo teléfono del cliente.
+ *                       telefono3:
+ *                         type: string
+ *                         description: Tercer teléfono del cliente (si lo tiene).
+ *                       colilla:
+ *                         type: string
+ *                         description: Colilla de pago o factura asociada al cliente.
+ *                       tap:
+ *                         type: string
+ *                         description: Detalles de TAP (si aplica).
+ *                       nap:
+ *                         type: string
+ *                         description: Detalles de NAP (si aplica).
+ *                       direccion:
+ *                         type: string
+ *                         description: Dirección del cliente.
+ *                       ubicacion:
+ *                         type: string
+ *                         description: Ubicación geográfica del cliente.
+ *       500:
+ *         description: Error interno del servidor.
+ */
+app.post('/api/TodosLosClientes', async (req, res) => {
+    // Consulta SQL para obtener todos los clientes
+    const query = 'SELECT * FROM clientes';
+
+    try {
+        // Usar el pool para ejecutar la consulta
+        const [results] = await pool.query(query);
+    
         if (results.length > 0) {
-            res.status(200).json({
-                estado: true,
-                data: results[0]
-            });
+          res.status(200).json({
+            estado: true,
+            data: results,
+          });
         } else {
-            res.status(404).json({
-                estado: false,
-                data: []
-            });
+          res.status(404).json({
+            estado: false,
+            data: [],
+          });
         }
-    });
+      } catch (err) {
+        console.error('Error al obtener los datos del cliente:', err);
+        res.status(500).json({
+          estado: false,
+          message: 'Error interno del servidor',
+          errorDetails: err.message,
+        });
+      }
 });
 
 
@@ -349,7 +453,7 @@ app.post('/api/obtenerCliente', (req, res) => {
  *     tags:
  *        - Datos del Cliente
  *     summary: Valida si un suscriptor ya existe
- *     description: Comprueba si un numero de suscriptor ya está registrado en la tabla clientes.
+ *     description: Comprueba si un número de suscriptor ya está registrado en la tabla clientes.
  *     requestBody:
  *       required: true
  *       content:
@@ -359,42 +463,49 @@ app.post('/api/obtenerCliente', (req, res) => {
  *             properties:
  *               suscriptor:
  *                 type: string
- *                 description: numero de suscriptor
+ *                 description: número de suscriptor
  *     responses:
  *       200:
- *         description: Devuelve true si el siscriptor ya existe, false en caso contrario.
+ *         description: Devuelve true si el suscriptor ya existe, false en caso contrario.
  *       400:
  *         description: Datos inválidos.
  *       500:
  *         description: Error interno del servidor.
  */
-app.post('/api/validarSuscriptorExiste', (req, res) => {
-
+app.post('/api/validarSuscriptorExiste', async (req, res) => {
     const { suscriptor } = req.body;
-
+  
+    if (!suscriptor) {
+      return res.status(400).json({
+        estado: false,
+        message: 'Debe proporcionar un número de suscriptor válido.',
+      });
+    }
+  
     const query = `
-        SELECT COUNT(*) AS count
-        FROM clientes
-        WHERE suscriptor = ?
+      SELECT COUNT(*) AS count
+      FROM clientes
+      WHERE suscriptor = ?
     `;
     const values = [suscriptor];
-
-    connection.query(query, values, (err, results) => {
-        if (err) {
-            console.error('Error al validar si el colaborador ya existe:', err);
-            return res.status(500).json({
-                estado: false,
-                message: 'Error interno del servidor',
-            });
-        }
-
-        const existeColaborador = results[0].count > 0;
-        res.status(200).json({
-            estado: true,
-            existeColaborador,
-        });
-    });
-});
+  
+    try {
+      const [results] = await pool.query(query, values);
+      const existeColaborador = results[0].count > 0;
+  
+      res.status(200).json({
+        estado: true,
+        existeColaborador,
+      });
+    } catch (err) {
+      console.error('Error al validar si el suscriptor ya existe:', err);
+      res.status(500).json({
+        estado: false,
+        message: 'Error interno del servidor',
+      });
+    }
+  });
+  
 
 
 
